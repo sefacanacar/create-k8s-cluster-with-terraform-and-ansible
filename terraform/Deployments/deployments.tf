@@ -15,7 +15,7 @@ terraform {
   }
 }
 provider "kubernetes" {
-  //config_path    = "${path.root}/kube_config_cluster.yml"
+  //config_path    = "<path>/kube_config_cluster.yml"
   config_path    = "<path>/kube_config_cluster.yml"
 }
 //CREATE NS FOR MONITORING
@@ -70,7 +70,7 @@ resource "kubernetes_config_map" "prometheus-server-conf" {
     namespace = "kube-mon"
   }
   data = {
-    "prometheus.yml" = "${file("${path.root}/prometheus/prometheus.yml")}"
+    "prometheus.yml" = "${file("<path>/prometheus/prometheus.yml")}"
   }
 }
 //PROMETHEUS DEPLOYMENT
@@ -174,7 +174,7 @@ resource "kubernetes_config_map" "grafana-server-conf" {
     namespace = "kube-mon"
   }
   data = {
-    "prometheus-datasource.yml" = "${file("${path.root}/grafana/prometheus-datasource.yml")}"
+    "prometheus-datasource.yml" = "${file("<path>/grafana/prometheus-datasource.yml")}"
   }
 }
 resource "kubernetes_config_map" "grafana-dashboard-conf" {
@@ -183,8 +183,8 @@ resource "kubernetes_config_map" "grafana-dashboard-conf" {
     namespace = "kube-mon"
   }
   data = {
-    "kubernetes-cluster-cpu.json" = "${file("${path.root}/grafana/dashboard.json")}"
-    "default.yaml"  = "${file("${path.root}/grafana/dashboard_def.yaml")}"
+    "kubernetes-cluster-cpu.json" = "${file("<path>/grafana/dashboard.json")}"
+    "default.yaml"  = "${file("<path>/grafana/dashboard_def.yaml")}"
   }
 }
 //GRAFANA DEPLOYMENT
