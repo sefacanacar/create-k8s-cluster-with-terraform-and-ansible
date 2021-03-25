@@ -1,0 +1,60 @@
+---
+- hosts: k8s_servers
+  user: root
+  become: yes
+  tasks:
+    - name: "Installing Docker Prerequisite packages"
+      yum:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - yum-utils
+        - device-mapper-persistent-data
+        - lvm2
+    - name: "Configuring docker-ce repo"
+      get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+        mode: 0644
+    - name: " Installing Docker latest version"
+      yum:
+        name: docker-ce
+        state: present
+    - name: "Listen port 2376"
+      replace:
+        path: /lib/systemd/system/docker.service
+        regexp: '-H fd://'
+        replace: "-H fd:// -H tcp://0.0.0.0:2376"
+    - name: Create a login user
+      user:
+        name: robo
+        password: 'some!passW0rd'
+        groups: 
+          - docker
+        state: present
+        shell: /bin/bash       
+        system: no             
+        createhome: yes 
+    - name: make direcotry
+      file:
+        path: "/home/robo/.ssh"
+        state: directory
+    - name: create empty file
+      file:
+        path: "/home/robo/.ssh/authorized_keys"
+        state: touch
+    - name: put pubkey
+      lineinfile:
+        path: "/home/robo/.ssh/authorized_keys"
+        line: "{{ lookup('file', '<path-to-here>c/ansible/<your-rsa-public-key-file') }}"
+    - name: adding existing user root to group docker
+      user:
+        name: root
+        groups: docker
+        append: yes
+    - name: " Starting and Enabling Docker service"
+      service:
+        name: docker
+        state: started
+        enabled: yes
+        daemon-reload: yes

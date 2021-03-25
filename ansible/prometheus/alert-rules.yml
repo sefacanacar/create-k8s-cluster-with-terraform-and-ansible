@@ -1,0 +1,12 @@
+groups:
+- name: alert.rules
+  rules:
+
+  - alert: PrometheusContainerDown
+    expr: kube_pod_container_status_restarts_total{container="prometheus"} > 00
+    for: 1m
+    labels:
+      identifier: '{{ $labels.instance }}'
+      severity: "critical"
+    annotations:
+      summary: "Prometheus Pod(s) Restarted"

@@ -1,0 +1,26 @@
+global:
+  smtp_smarthost: 'smtp.domain.net:587'
+  smtp_from: 'AlertManager <mailer@domain.com>'
+  smtp_require_tls: true
+  smtp_hello: 'alertmanager'
+  smtp_auth_username: 'username'
+  smtp_auth_password: 'password'
+
+  slack_api_url: 'https://hooks.slack.com/services/x/xx/xxx'
+
+route:
+  group_by: ['instance', 'alert']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 3h
+  receiver: team-1
+
+receivers:
+  - name: 'team-1'
+    email_configs:
+      - to: 'user@domain.com'
+    slack_configs:
+      # https://prometheus.io/docs/alerting/configuration/#slack_config
+      - channel: 'system_events'
+      - username: 'AlertManager'
+      - icon_emoji: ':joy:'

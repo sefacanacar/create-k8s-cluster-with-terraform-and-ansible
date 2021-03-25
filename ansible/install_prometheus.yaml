@@ -1,0 +1,83 @@
+---
+- hosts: metrics_and_consul_server
+  user: root
+  become: yes
+  tasks:
+    - name: Create prometheus user
+      user:
+        name: prometheus
+        state: present
+        shell: /bin/bash       
+        system: no             
+        createhome: yes
+    - name: "Downloading Prometheus"
+      get_url:
+        url: https://github.com/prometheus/prometheus/releases/download/v2.25.2/prometheus-2.25.2.linux-amd64.tar.gz
+        dest: /opt/prometheus-2.25.2.linux-amd64.tar.gz
+        mode: 0644
+    - name: "Extract Prometheus Package"
+      unarchive:
+        src: /opt/prometheus-2.25.2.linux-amd64.tar.gz
+        dest: /opt
+        remote_src: yes
+    - name: make directory
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: prometheus
+        group: prometheus
+      with_items:
+        - "/var/lib/prometheus"
+        - "/etc/prometheus"
+    - name: "Copy binaries to /usr/local/bin"
+      copy:
+        src: /opt/prometheus-2.25.2.linux-amd64/{{ item }}
+        dest: /usr/local/bin/{{ item }}
+        owner: prometheus
+        group: prometheus
+        mode: 0755
+        remote_src: yes
+      with_items:
+        - prometheus
+        - promtool
+    - name: "Copy Directories Under /etc/prometheus"
+      copy:
+        src: /opt/prometheus-2.25.2.linux-amd64/{{ item }}
+        dest: /etc/prometheus/{{ item }}
+        owner: prometheus
+        group: prometheus
+        remote_src: yes
+      with_items:
+        - console_libraries
+        - consoles
+    - name: "create empty file for prometheus.yml"
+      file:
+        path: "/etc/prometheus/prometheus.yml"
+        state: touch
+        owner: prometheus
+        group: prometheus
+    - name: put yaml
+      lineinfile:
+        path: "/etc/prometheus/prometheus.yml"
+        line: "{{ lookup('file', '<path-to-here>c/ansible/prometheus/prometheus.yml') }}"
+    -- name: "create alert-rule file for Prometheus"
+      copy:
+        src: "<path-to-here>c/ansible/prometheus/alert-rules.yml"
+        dest: "/etc/prometheus/prometheus/alert-rules.yml"
+        owner: prometheus
+        group: prometheus
+    - name: "create service file for prometheus"
+      file:
+        path: "/etc/systemd/system/prometheus.service"
+        state: touch
+    - name: put service file
+      lineinfile:
+        path: "/etc/systemd/system/prometheus.service"
+        line: "{{ lookup('file', '<path-to-here>c/ansible/prometheus/prometheus.service') }}"
+    - name: " Starting and Enabling Prometheus service"
+      service:
+        name: prometheus
+        state: started
+        enabled: yes
+        daemon-reload: yes
+

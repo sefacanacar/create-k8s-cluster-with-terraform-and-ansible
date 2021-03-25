@@ -1,0 +1,86 @@
+---
+- hosts: metrics_and_consul_server
+  user: root
+  become: yes
+  tasks:
+    - name: "Installing Consul Prerequisite packages"
+      yum:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - yum-utils
+    - name: Add Consul repository
+      shell: yum-config-manager --add-repo=https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+      args:
+        creates: /etc/yum.repos.d/hashicorp.repo
+    - name: "Installing Consul latest version"
+      yum:
+        name: consul
+        state: present
+    - name: "get Consul encryption key"
+      shell: consul keygen
+      register: keygen
+    - name: "create tls ca"
+      shell: "{{ item }}"
+      with_items:
+        - "consul tls ca create"
+        - "consul tls cert create -server -dc dc1"
+        - "consul tls cert create -client -dc dc1"
+    - name: Copy original hcl file
+      copy:
+        src: "/etc/consul.d/consul.hcl"
+        dest: "/etc/consul.d/consul.hcl.org"
+        owner: consul
+        group: consul
+        remote_src: yes
+    - name: Delete hcl file
+      file:
+        path: "/etc/consul.d/consul.hcl"
+        state: absent
+    - name: "Copy Directories pem files under /etc/consul.d"
+      copy:
+        src: /root/{{ item }}
+        dest: /etc/consul.d/{{ item }}
+        owner: consul
+        group: consul
+        remote_src: yes
+      with_items:
+        - consul-agent-ca.pem
+        - consul-agent-ca-key.pem
+        - dc1-server-consul-0.pem
+        - dc1-server-consul-0-key.pem
+        - dc1-client-consul-0.pem
+        - dc1-client-consul-0-key.pem
+    - name: "create consul.hcl file"
+      copy:
+        src: "<path-to-here>c/ansible/consul/consul.hcl"
+        dest: "/usr/lib/systemd/system/consul.hcl"
+        owner: consul
+        group: consul
+    - name: "put key into consul.hcl"
+      replace:
+        path: "/etc/consul.d/consul.hcl"
+        regexp: 'encrypt ='
+        replace: "encrypt = {{ keygen.stdout }}"
+    - name: ""create server.hcl file""
+      copy:
+        src: "<path-to-here>c/ansible/consul/server.hcl"
+        dest: "/usr/lib/systemd/system/server.hcl"
+        owner: consul
+        group: consul
+    - name: "create prometheus.json file"
+      copy:
+        src: "<path-to-here>c/ansible/consul/prometheus.json"
+        dest: "/etc/consul.d/prometheus.json"
+        owner: consul
+        group: consul
+    - name: "create service file for Consul"
+      copy:
+        src: "<path-to-here>c/ansible/consul/consul.service"
+        dest: "/usr/lib/systemd/system/consul.service"
+    - name: " Starting and Enabling Consul service"
+      service:
+        name: consul
+        state: started
+        enabled: yes
+        daemon-reload: yes

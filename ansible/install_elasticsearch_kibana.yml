@@ -1,0 +1,43 @@
+---
+- hosts: logging_server
+  user: root
+  become: yes
+  tasks:
+    - name: "Add Elasticsearch Repo to yum"
+      copy:
+        src: "<path-to-here>c/ansible/elasticsearch/elastic.repo"
+        dest: "/etc/yum.repos.d/elastic.repo"
+    - name: "Install Elasticsearch and Kibana"
+      yum:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - elasticsearch
+        - kibana
+    - name: "Copy elasticsearch.yml"
+      copy:
+        src: "<path-to-here>c/ansible/elasticsearch/elasticsearch.yml"
+        dest: "/etc/elasticsearch/elasticsearch.yml"
+        owner: elasticsearch
+        group: elasticsearch
+    - name: "Copy kibana.yml"
+      copy:
+        src: "<path-to-here>c/ansible/elasticsearch/kibana.yml"
+        dest: "/etc/kibana/kibana.yml"
+        owner: kibana
+        group: kibana
+    - name: "Copy elasticsearch.service"
+      copy:
+        src: "<path-to-here>c/ansible/elasticsearch/elasticsearch.service"
+        dest: "/lib/systemd/system/elasticsearch.service"
+        owner: kibana
+        group: kibana
+    - name: "Starting and Enabling services"
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+        daemon-reload: yes
+      with_items:
+        - elasticsearch
+        - kibana

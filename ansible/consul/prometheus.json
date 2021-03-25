@@ -1,0 +1,13 @@
+{
+ "Service": {
+  "Address": "8.208.92.190",
+  "ID": "kube_prometheus",
+  "Name": "prometheus_int",
+  "Port": 80,
+  "Tags": [
+   "_app=prometheus",
+   "_service=prometheus",
+   "_environment=dev"
+  ]
+ }
+}

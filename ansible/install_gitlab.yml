@@ -1,0 +1,38 @@
+---
+- hosts: logging_server
+  user: root
+  become: yes
+  tasks:
+    - name: "install prerequsities"
+      yum:
+        name: ['curl', 'policycoreutils-python', 'openssh-server', 'perl', 'postfix']
+        state: present
+    - name: "Edit Postfix Config"
+      replace:
+        path: /etc/postfix/main.cf    
+        regexp: 'inet_protocols = all'
+        replace: 'inet_protocols = ipv4'
+    - name: " Starting Postfix"
+      service:
+        name: postfix
+        state: started
+        enabled: yes
+        daemon-reload: yes
+    - name: "Download Installation Script"
+      get_url:
+        url: https://packages.gitlab.com/install/repositories/gitlab/gitlab-ee/script.rpm.sh
+        dest: /root/script.rpm.sh
+        mode: 0755
+
+    - name: "Run Downloaded Script"
+      shell: "/bin/bash /root/script.rpm.sh"
+      register: scOut
+    - debug: var=scOut.stdout_lines
+
+    - name: "export LANG and LC_*"
+      shell: "{{ item }}"
+      with_items:
+        - "export LC_CTYPE=en_US.UTF-8"
+        - "export LC_ALL=en_US.UTF-8"
+    - name: "install gitlab"
+      shell: 'EXTERNAL_URL=8.208.84.206 yum install -y gitlab-ee'
